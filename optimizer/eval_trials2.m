@@ -389,27 +389,30 @@ if do_parallel && ~do_wrappers
     end
     if do_return_J_grad
         avg_grad = zeros(size(net.theta));
-        %grad = cell(1,nblocks);
+        grad = cell(1,nblocks);
         new_simdata_blocks = cell(1,nblocks);
         if is_numeric_not_cell
             parfor i = 1:nblocks
                 package = feval(eval_gradient, net, v_u_t_block{i}, m_target_t_block{i}, TvV, block_trial_idxs{i}, block_all_optional_params{i}, block_all_simdata{i});
-                %grad{i} = package{1};
-                avg_grad = avg_grad + package{1};
+                grad{i} = package{1};
+                %avg_grad = avg_grad + package{1};
                 new_simdata_blocks{i} = package{end};
             end
         else
             parfor i = 1:nblocks
                 package = feval(eval_gradient, net, v_u_t{i}, m_target_t{i}, TvV, block_trial_idxs{i}, block_all_optional_params{i}, block_all_simdata{i});
-                %grad{i} = package{1};
-                avg_grad = avg_grad + package{1};
+                grad{i} = package{1};
+                %avg_grad = avg_grad + package{1};
                 new_simdata_blocks{i} = package{end};
             end
+        end
+        for i = 1:nblocks
+            avg_grad = avg_grad + grad{i};
         end
         avg_grad = avg_grad / ntrials;
     end
     if do_return_J_GaussNewton
-        %gv = cell(1,nblocks);
+        gv = cell(1,nblocks);
         avg_gv = zeros(size(net.theta));
         new_simdata_blocks = cell(1,nblocks);
         if ( is_numeric_not_cell )
@@ -419,8 +422,8 @@ if do_parallel && ~do_wrappers
                 % appropriately.
                 package = feval(eval_cg_afun, net, v_u_t_block{i}, m_target_t_block{i}, v, lambda, pregen_forward_pass_t_blocks{i}, TvV, ...
                     block_trial_idxs{i}, block_all_optional_params{i}, block_all_simdata{i});
-                %gv{i} = package{1};
-                avg_gv = avg_gv + package{1};
+                gv{i} = package{1};
+                %avg_gv = avg_gv + package{1};
                 new_simdata_blocks{i} = package{end};
             end
         else
@@ -428,10 +431,13 @@ if do_parallel && ~do_wrappers
                 % v and forward_pass_t are parameters to eval_trials.m
                 package = feval(eval_cg_afun, net, v_u_t{i}, m_target_t{i}, v, lambda, pregen_forward_pass_t{i}, TvV, ...
                     block_trial_idxs{i}, block_all_optional_params{i}, block_all_simdata{i});
-                %gv{i} = package{1};
-                avg_gv = avg_gv + package{1};
+                gv{i} = package{1};
+                %avg_gv = avg_gv + package{1};
                 new_simdata_blocks{i} = package{end};
             end
+        end
+        for i = 1:nblocks
+            avg_gv = avg_gv + gv{i};
         end
         avg_gv = avg_gv / ntrials;
     end
@@ -477,24 +483,26 @@ if do_parallel && ~do_wrappers
         end
     end
     if do_return_J_grad_with_network
-        %grad = cell(1,nblocks);
+        grad = cell(1,nblocks);
         avg_grad = zeros(size(net.theta));
         new_simdata_blocks = cell(1,nblocks);
         if is_numeric_not_cell
             parfor i = 1:nblocks
                 package = feval(eval_gradient_with_network, net, v_u_t_block{i}, m_target_t_block{i}, pregen_forward_pass_t_blocks{i}, TvV, block_trial_idxs{i}, block_all_optional_params{i}, block_all_simdata{i});
-                %grad{i} = package{1};
-                avg_grad = avg_grad + package{1};
+                grad{i} = package{1};
+                %avg_grad = avg_grad + package{1};
                 new_simdata_blocks{i} = package{end};
             end
         else
-            
             parfor i = 1:nblocks
                 package = feval(eval_gradient_with_network, net, v_u_t{i}, m_target_t{i}, pregen_forward_pass_t{i}, TvV, block_trial_idxs{i}, block_all_optional_params{i}, block_all_simdata{i});
-                %grad{i} = package{1};
-                avg_grad = avg_grad + package{1};
+                grad{i} = package{1};
+                %avg_grad = avg_grad + package{1};
                 new_simdata_blocks{i} = package{end};
             end            
+        end
+        for i = 1:nblocks
+            avg_grad = avg_grad + grad{i};
         end
         avg_grad = avg_grad / ntrials;
     end

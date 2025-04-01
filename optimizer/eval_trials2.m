@@ -49,17 +49,15 @@ end
 assert ( ntrials > 0, 'stopped');
 
 
-ver_string = version;
-switch ver_string
-    case '8.3.0.532 (R2014a)'  % The newer incantation.
-        ncore_guess = double(isempty(gcp('nocreate')));
-        if ncore_guess == 0
-            pool = gcp('nocreate');            
-            ncore_guess = pool.NumWorkers;
-        end
-        %disp(['ncore guess:  ', num2str(ncore_guess)]);
-    otherwise        
-        ncore_guess = matlabpool('size'); %#ok<DPOOL>
+if verLessThan('matlab', '8.3') % for older versions
+    ncore_guess = matlabpool('size'); %#ok<DPOOL>
+else
+    ncore_guess = double(isempty(gcp('nocreate')));
+    if ncore_guess == 0
+        pool = gcp('nocreate');            
+        ncore_guess = pool.NumWorkers;
+    end
+    %disp(['ncore guess:  ', num2str(ncore_guess)]);
 end
 
 if ncore_guess == 0

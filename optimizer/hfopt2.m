@@ -831,8 +831,8 @@ while go
     %%% Hack    
     if ~isinf(nhfiters_to_reset_matlabpool) && mod(hf_iter, nhfiters_to_reset_matlabpool) == 1
         warning('hacking the matlabpool memory leak by reseting');
-        matlabpool('close');
-        matlabpool('local');
+        parpool('close');
+        parpool('local');
     end
     
     if ( hf_iter > max_hf_iters )

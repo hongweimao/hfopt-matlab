@@ -264,6 +264,19 @@ if isfield(net, 'frobeniusNormRecRecRegularizer')
     end
 end
 
+% Firing rate sum of squares regularizer - H.M.
+do_firing_rate_ss_regularizer = false;
+if isfield(net, 'firingRateSumSquares')
+    if net.firingRateSumSquares.weight > 0.0
+        do_firing_rate_ss_regularizer = true;
+        
+        fr_ss_reg_weight = net.firingRateSumSquares.weight;
+        fr_ss_reg_mask = logical(net.firingRateSumSquares.mask);
+        
+        N_fr_ss_reg = length(find(fr_ss_reg_mask));
+    end
+end
+
 do_firing_rate_mean_regularizer = false;
 if isfield(net, 'lowFiringRateRegularizer')
     assert ( false, 'Need to change parameterizertion for low firing rate regularizer.');
@@ -461,6 +474,14 @@ if ( do_return_L )
             L_fro = frob_factor * s_sW2_sdr2;     % Average over T to get the squared Frobenius norm.
         end
         all_Ls(end+1) = L_fro;
+
+        % Firing rate sum of squares regularization - H.M.
+        L_fr_ss = 0;
+        if do_firing_rate_ss_regularizer
+            n_r_ss_1 = sum(n_r_t.^2, 2);
+            L_fr_ss = (fr_ss_reg_weight/(2.0*N_fr_ss_reg*T)) * sum(fr_ss_reg_mask .* n_r_ss_1);
+        end
+        all_Ls(end+1) = L_fr_ss;
         
         % Low firing rate regularization
         % Note that these WILL still be in play even if T is masked.
@@ -563,6 +584,12 @@ if ( do_return_L_grad )
         n_dLfdx_tp1 = zeros(N,T+1);
         n_dLfdx_tp1(frob_col_idxs, :) = fc_dLfdxFN_tp1;
         n_dLextrasr_tp1 = n_dLextrasr_tp1 + n_dLfdx_tp1;
+    end
+    % Firing rate sum of squares regularization - H.M.
+    if do_firing_rate_ss_regularizer
+        rss_factor = fr_ss_reg_weight / (N_fr_ss_reg * T);
+        n_dLFRdr_ss_t = rss_factor * (n_r_t .* repmat(fr_ss_reg_mask, 1, T));
+        n_dLextrasr_tp1(:,2:T+1) = n_dLextrasr_tp1(:,2:T+1) + n_dLFRdr_ss_t;
     end
     if do_firing_rate_mean_regularizer
         ravg_factor = fr_mean_reg_weight / (N_fr_mean_reg * T);
@@ -907,6 +934,12 @@ if ( do_return_L_GaussNewton )   % GN start
         n_part2beta_tp1 = zeros(N,T+1);
         n_part2beta_tp1(frob_col_idxs,:) = fc_part2beta_FN_tp1;
         n_RdLextrasr_tp1 = n_RdLextrasr_tp1 + n_part2beta_tp1;
+    end
+    % Firing rate sum of squares regularization - H.M.
+    if do_firing_rate_ss_regularizer
+        rss_factor = fr_ss_reg_weight / (N_fr_ss_reg * T);
+        n_RdLFRdrss_t = rss_factor * (n_Rr_t .* repmat(fr_ss_reg_mask, 1, T));  % Is this correct?
+        n_RdLextrasr_tp1(:,2:T+1) = n_RdLextrasr_tp1(:,2:T+1) + n_RdLFRdrss_t;
     end
     if do_firing_rate_mean_regularizer
         ravg_factor = fr_mean_reg_weight / (N_fr_mean_reg * T);
